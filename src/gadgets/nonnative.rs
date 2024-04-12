@@ -9,7 +9,7 @@ use plonky2::field::types::{Field, PrimeField};
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::generator::{GeneratedValues, SimpleGenerator};
 use plonky2::iop::target::{BoolTarget, Target};
-use plonky2::iop::witness::{PartitionWitness, WitnessWrite};
+use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::util::ceil_div_usize;
 use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
@@ -737,6 +737,18 @@ impl<F: RichField + Extendable<D>, const D: usize, FF: PrimeField> SimpleGenerat
     }
 }
 
+pub trait PartialWitnessNonNative<F: RichField + Extendable<5>>: Witness<F> {
+    fn get_nonnative_target<FF: PrimeField>(&self, target: NonNativeTarget<FF>) -> FF;
+    fn set_nonnative_target<FF: PrimeField>(&mut self, target: NonNativeTarget<FF>, value: FF);
+}
+impl<F: RichField + Extendable<5>, W: Witness<F>> PartialWitnessNonNative<F> for W {
+    fn get_nonnative_target<FF: PrimeField>(&self, target: NonNativeTarget<FF>) -> FF {
+        FF::from_noncanonical_biguint(self.get_biguint_target(target.value))
+    }
+    fn set_nonnative_target<FF: PrimeField>(&mut self, target: NonNativeTarget<FF>, value: FF) {
+        self.set_biguint_target(&target.value, &value.to_canonical_biguint());
+    }
+}
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
@@ -747,7 +759,7 @@ mod tests {
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
-    use crate::gadgets::nonnative::CircuitBuilderNonNative;
+    use crate::gadgets::nonnative::{CircuitBuilderNonNative, PartialWitnessNonNative};
 
     #[test]
     fn test_nonnative_add() -> Result<()> {
@@ -915,6 +927,35 @@ mod tests {
         let inv_x_expected = builder.constant_nonnative(inv_x_ff);
         builder.connect_nonnative(&inv_x, &inv_x_expected);
 
+        let data = builder.build::<C>();
+        let proof = data.prove(pw).unwrap();
+        data.verify(proof)
+    }
+
+    #[test]
+    fn test_witness() -> Result<()> {
+        type FF = Secp256K1Base;
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let x_ff = FF::rand();
+        let y_ff = FF::rand();
+        let sum_ff = x_ff + y_ff;
+
+        let config = CircuitConfig::standard_ecc_config();
+        let mut pw = PartialWitness::new();
+        let mut builder = CircuitBuilder::<F, D>::new(config);
+
+        let x = builder.add_virtual_nonnative_target();
+        let y = builder.add_virtual_nonnative_target();
+        let sum = builder.add_nonnative(&x, &y);
+
+        let sum_expected = builder.constant_nonnative(sum_ff);
+        builder.connect_nonnative(&sum, &sum_expected);
+
+        pw.set_nonnative_target(x, x_ff);
+        pw.set_nonnative_target(y, y_ff);
         let data = builder.build::<C>();
         let proof = data.prove(pw).unwrap();
         data.verify(proof)
