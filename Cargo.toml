@@ -13,8 +13,8 @@ anyhow = { version = "1.0.40" }
 itertools = { version = "0.10.0" }
 plonky2_maybe_rayon = { version = "0.1.0" }
 num = { version = "0.4.0" }
-plonky2 = { git = "ssh://git@github.com/okx/plonky2.git", rev= "15c3e7a8599158e29dda7e0423144d4798ce3581"}
-plonky2_u32 = { git = "https://github.com/okx/plonky2-u32.git", rev = "fd0f2a6ac34eaf8fdca9eecc28e83bf28206fe8b" }
+plonky2 = { git = "ssh://git@github.com/okx/plonky2.git", rev= "7cf50f1f78d369c157f955505b1e8902926eefba"}
+plonky2_u32 = { git = "https://github.com/okx/plonky2-u32.git", rev = "5cea1766052f0e5935c2734e365077620b2b56de" }
 serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
