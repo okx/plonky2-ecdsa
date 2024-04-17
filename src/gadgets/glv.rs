@@ -100,7 +100,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderGlv<F, D>
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct GLVDecompositionGenerator<F: RichField + Extendable<D>, const D: usize> {
     k: NonNativeTarget<Secp256K1Scalar>,
     k1: NonNativeTarget<Secp256K1Scalar>,
