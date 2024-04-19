@@ -1,6 +1,6 @@
-use plonky2::field::secp256k1_base::Secp256K1Base;
-use plonky2::field::secp256k1_scalar::Secp256K1Scalar;
-use plonky2::field::types::Field;
+use plonky2::field::{
+    secp256k1_base::Secp256K1Base, secp256k1_scalar::Secp256K1Scalar, types::Field,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::curve::curve_types::{AffinePoint, Curve};
@@ -14,48 +14,37 @@ impl Curve for Secp256K1 {
 
     const A: Secp256K1Base = Secp256K1Base::ZERO;
     const B: Secp256K1Base = Secp256K1Base([7, 0, 0, 0]);
-    const GENERATOR_AFFINE: AffinePoint<Self> = AffinePoint {
-        x: SECP256K1_GENERATOR_X,
-        y: SECP256K1_GENERATOR_Y,
-        zero: false,
-    };
+    const GENERATOR_AFFINE: AffinePoint<Self> =
+        AffinePoint { x: SECP256K1_GENERATOR_X, y: SECP256K1_GENERATOR_Y, zero: false };
 }
 
 // 55066263022277343669578718895168534326250603453777594175500187360389116729240
-const SECP256K1_GENERATOR_X: Secp256K1Base = Secp256K1Base([
-    0x59F2815B16F81798,
-    0x029BFCDB2DCE28D9,
-    0x55A06295CE870B07,
-    0x79BE667EF9DCBBAC,
-]);
+const SECP256K1_GENERATOR_X: Secp256K1Base =
+    Secp256K1Base([0x59F2815B16F81798, 0x029BFCDB2DCE28D9, 0x55A06295CE870B07, 0x79BE667EF9DCBBAC]);
 
 /// 32670510020758816978083085130507043184471273380659243275938904335757337482424
-const SECP256K1_GENERATOR_Y: Secp256K1Base = Secp256K1Base([
-    0x9C47D08FFB10D4B8,
-    0xFD17B448A6855419,
-    0x5DA4FBFC0E1108A8,
-    0x483ADA7726A3C465,
-]);
+const SECP256K1_GENERATOR_Y: Secp256K1Base =
+    Secp256K1Base([0x9C47D08FFB10D4B8, 0xFD17B448A6855419, 0x5DA4FBFC0E1108A8, 0x483ADA7726A3C465]);
 
 #[cfg(test)]
 mod tests {
     use num::BigUint;
-    use plonky2::field::secp256k1_scalar::Secp256K1Scalar;
-    use plonky2::field::types::{Field, PrimeField};
+    use plonky2::field::{
+        secp256k1_scalar::Secp256K1Scalar,
+        types::{Field, PrimeField},
+    };
 
-    use crate::curve::curve_types::{AffinePoint, Curve, ProjectivePoint};
-    use crate::curve::secp256k1::Secp256K1;
+    use crate::curve::{
+        curve_types::{AffinePoint, Curve, ProjectivePoint},
+        secp256k1::Secp256K1,
+    };
 
     #[test]
     fn test_generator() {
         let g = Secp256K1::GENERATOR_AFFINE;
         assert!(g.is_valid());
 
-        let neg_g = AffinePoint::<Secp256K1> {
-            x: g.x,
-            y: -g.y,
-            zero: g.zero,
-        };
+        let neg_g = AffinePoint::<Secp256K1> { x: g.x, y: -g.y, zero: g.zero };
         assert!(neg_g.is_valid());
     }
 

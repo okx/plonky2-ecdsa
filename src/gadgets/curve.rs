@@ -1,14 +1,16 @@
-use alloc::vec;
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 
-use plonky2::field::extension::Extendable;
-use plonky2::field::types::Sample;
-use plonky2::hash::hash_types::RichField;
-use plonky2::iop::target::BoolTarget;
-use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::{
+    field::{extension::Extendable, types::Sample},
+    hash::hash_types::RichField,
+    iop::target::BoolTarget,
+    plonk::circuit_builder::CircuitBuilder,
+};
 
-use crate::curve::curve_types::{AffinePoint, Curve, CurveScalar};
-use crate::gadgets::nonnative::{CircuitBuilderNonNative, NonNativeTarget};
+use crate::{
+    curve::curve_types::{AffinePoint, Curve, CurveScalar},
+    gadgets::nonnative::{CircuitBuilderNonNative, NonNativeTarget},
+};
 
 /// A Target representing an affine point on the curve `C`. We use incomplete arithmetic for efficiency,
 /// so we assume these points are not zero.
@@ -117,10 +119,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderCurve<F, D>
 
     fn curve_neg<C: Curve>(&mut self, p: &AffinePointTarget<C>) -> AffinePointTarget<C> {
         let neg_y = self.neg_nonnative(&p.y);
-        AffinePointTarget {
-            x: p.x.clone(),
-            y: neg_y,
-        }
+        AffinePointTarget { x: p.x.clone(), y: neg_y }
     }
 
     fn curve_conditional_neg<C: Curve>(
@@ -128,10 +127,7 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderCurve<F, D>
         p: &AffinePointTarget<C>,
         b: BoolTarget,
     ) -> AffinePointTarget<C> {
-        AffinePointTarget {
-            x: p.x.clone(),
-            y: self.nonnative_conditional_neg(&p.y, b),
-        }
+        AffinePointTarget { x: p.x.clone(), y: self.nonnative_conditional_neg(&p.y, b) }
     }
 
     fn curve_double<C: Curve>(&mut self, p: &AffinePointTarget<C>) -> AffinePointTarget<C> {
@@ -260,18 +256,27 @@ mod tests {
     use core::ops::Neg;
 
     use anyhow::Result;
-    use plonky2::field::secp256k1_base::Secp256K1Base;
-    use plonky2::field::secp256k1_scalar::Secp256K1Scalar;
-    use plonky2::field::types::{Field, Sample};
-    use plonky2::iop::witness::PartialWitness;
-    use plonky2::plonk::circuit_builder::CircuitBuilder;
-    use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::{
+        field::{
+            secp256k1_base::Secp256K1Base,
+            secp256k1_scalar::Secp256K1Scalar,
+            types::{Field, Sample},
+        },
+        iop::witness::PartialWitness,
+        plonk::{
+            circuit_builder::CircuitBuilder,
+            circuit_data::CircuitConfig,
+            config::{GenericConfig, PoseidonGoldilocksConfig},
+        },
+    };
 
-    use crate::curve::curve_types::{AffinePoint, Curve, CurveScalar};
-    use crate::curve::secp256k1::Secp256K1;
-    use crate::gadgets::curve::CircuitBuilderCurve;
-    use crate::gadgets::nonnative::CircuitBuilderNonNative;
+    use crate::{
+        curve::{
+            curve_types::{AffinePoint, Curve, CurveScalar},
+            secp256k1::Secp256K1,
+        },
+        gadgets::{curve::CircuitBuilderCurve, nonnative::CircuitBuilderNonNative},
+    };
 
     #[test]
     fn test_curve_point_is_valid() -> Result<()> {
@@ -310,11 +315,7 @@ mod tests {
         let mut builder = CircuitBuilder::<F, D>::new(config);
 
         let g = Secp256K1::GENERATOR_AFFINE;
-        let not_g = AffinePoint::<Secp256K1> {
-            x: g.x,
-            y: g.y + Secp256K1Base::ONE,
-            zero: g.zero,
-        };
+        let not_g = AffinePoint::<Secp256K1> { x: g.x, y: g.y + Secp256K1Base::ONE, zero: g.zero };
         let not_g_target = builder.constant_affine_point(not_g);
 
         builder.curve_assert_valid(&not_g_target);

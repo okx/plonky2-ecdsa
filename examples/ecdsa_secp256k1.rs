@@ -1,21 +1,28 @@
 use env_logger::{try_init_from_env, Env, DEFAULT_FILTER_ENV};
 use log::Level;
-use plonky2::field::secp256k1_scalar::Secp256K1Scalar;
-use plonky2::field::types::Sample;
-use plonky2::iop::witness::PartialWitness;
-use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2::plonk::circuit_data::{CircuitConfig, CircuitData};
-use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-use plonky2::plonk::prover::prove;
-use plonky2::util::timing::TimingTree;
-use plonky2_ecdsa::curve::curve_types::{Curve, CurveScalar};
-use plonky2_ecdsa::curve::ecdsa::{sign_message, ECDSAPublicKey, ECDSASecretKey, ECDSASignature};
-use plonky2_ecdsa::curve::secp256k1::Secp256K1;
-use plonky2_ecdsa::gadgets::curve::CircuitBuilderCurve;
-use plonky2_ecdsa::gadgets::ecdsa::{
-    verify_message_circuit, ECDSAPublicKeyTarget, ECDSASignatureTarget,
+use plonky2::{
+    field::{secp256k1_scalar::Secp256K1Scalar, types::Sample},
+    iop::witness::PartialWitness,
+    plonk::{
+        circuit_builder::CircuitBuilder,
+        circuit_data::{CircuitConfig, CircuitData},
+        config::{GenericConfig, PoseidonGoldilocksConfig},
+        prover::prove,
+    },
+    util::timing::TimingTree,
 };
-use plonky2_ecdsa::gadgets::nonnative::CircuitBuilderNonNative;
+use plonky2_ecdsa::{
+    curve::{
+        curve_types::{Curve, CurveScalar},
+        ecdsa::{sign_message, ECDSAPublicKey, ECDSASecretKey, ECDSASignature},
+        secp256k1::Secp256K1,
+    },
+    gadgets::{
+        curve::CircuitBuilderCurve,
+        ecdsa::{verify_message_circuit, ECDSAPublicKeyTarget, ECDSASignatureTarget},
+        nonnative::CircuitBuilderNonNative,
+    },
+};
 fn main() {
     let _ = try_init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "debug"));
 
@@ -42,20 +49,13 @@ fn main() {
     let ECDSASignature { r, s } = sig;
     let r_target = builder.constant_nonnative(r);
     let s_target = builder.constant_nonnative(s);
-    let sig_target = ECDSASignatureTarget {
-        r: r_target,
-        s: s_target,
-    };
+    let sig_target = ECDSASignatureTarget { r: r_target, s: s_target };
 
     verify_message_circuit(&mut builder, msg_target, sig_target, pk_target);
 
     builder.print_gate_counts(0);
     let circuit = builder.build::<C>();
-    let CircuitData {
-        prover_only,
-        common,
-        verifier_only: _,
-    } = &circuit;
+    let CircuitData { prover_only, common, verifier_only: _ } = &circuit;
 
     let mut timing = TimingTree::new("prove", Level::Debug);
     let proof = prove(prover_only, common, pw, &mut timing).expect("prover failed");

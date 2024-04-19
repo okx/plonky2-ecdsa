@@ -1,16 +1,20 @@
 use core::marker::PhantomData;
 
-use plonky2::field::extension::Extendable;
-use plonky2::field::secp256k1_scalar::Secp256K1Scalar;
-use plonky2::hash::hash_types::RichField;
-use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::{
+    field::{extension::Extendable, secp256k1_scalar::Secp256K1Scalar},
+    hash::hash_types::RichField,
+    plonk::circuit_builder::CircuitBuilder,
+};
 
-use crate::curve::curve_types::Curve;
-use crate::curve::secp256k1::Secp256K1;
-use crate::gadgets::curve::{AffinePointTarget, CircuitBuilderCurve};
-use crate::gadgets::curve_fixed_base::fixed_base_curve_mul_circuit;
-use crate::gadgets::glv::CircuitBuilderGlv;
-use crate::gadgets::nonnative::{CircuitBuilderNonNative, NonNativeTarget};
+use crate::{
+    curve::{curve_types::Curve, secp256k1::Secp256K1},
+    gadgets::{
+        curve::{AffinePointTarget, CircuitBuilderCurve},
+        curve_fixed_base::fixed_base_curve_mul_circuit,
+        glv::CircuitBuilderGlv,
+        nonnative::{CircuitBuilderNonNative, NonNativeTarget},
+    },
+};
 
 #[derive(Clone, Debug)]
 pub struct ECDSASecretKeyTarget<C: Curve>(pub NonNativeTarget<C::ScalarField>);
@@ -42,24 +46,27 @@ pub fn verify_message_circuit<F: RichField + Extendable<D>, const D: usize>(
     let point2 = builder.glv_mul(&pk.0, &u2);
     let point = builder.curve_add(&point1, &point2);
 
-    let x = NonNativeTarget::<Secp256K1Scalar> {
-        value: point.x.value,
-        _phantom: PhantomData,
-    };
+    let x = NonNativeTarget::<Secp256K1Scalar> { value: point.x.value, _phantom: PhantomData };
     builder.connect_nonnative(&r, &x);
 }
 
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2::field::types::Sample;
-    use plonky2::iop::witness::PartialWitness;
-    use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::{
+        field::types::Sample,
+        iop::witness::PartialWitness,
+        plonk::{
+            circuit_data::CircuitConfig,
+            config::{GenericConfig, PoseidonGoldilocksConfig},
+        },
+    };
 
     use super::*;
-    use crate::curve::curve_types::CurveScalar;
-    use crate::curve::ecdsa::{sign_message, ECDSAPublicKey, ECDSASecretKey, ECDSASignature};
+    use crate::curve::{
+        curve_types::CurveScalar,
+        ecdsa::{sign_message, ECDSAPublicKey, ECDSASecretKey, ECDSASignature},
+    };
 
     fn test_ecdsa_circuit_with_config(config: CircuitConfig) -> Result<()> {
         const D: usize = 2;
@@ -84,10 +91,7 @@ mod tests {
         let ECDSASignature { r, s } = sig;
         let r_target = builder.constant_nonnative(r);
         let s_target = builder.constant_nonnative(s);
-        let sig_target = ECDSASignatureTarget {
-            r: r_target,
-            s: s_target,
-        };
+        let sig_target = ECDSASignatureTarget { r: r_target, s: s_target };
 
         verify_message_circuit(&mut builder, msg_target, sig_target, pk_target);
 

@@ -1,9 +1,7 @@
-use alloc::vec;
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use core::iter::Sum;
 
-use plonky2::field::ops::Square;
-use plonky2::field::types::Field;
+use plonky2::field::{ops::Square, types::Field};
 
 use crate::curve::curve_types::{AffinePoint, Curve, ProjectivePoint};
 
@@ -44,10 +42,7 @@ pub fn affine_multisummation_best<C: Curve>(
 pub fn affine_multisummation_pairwise<C: Curve>(
     summations: Vec<Vec<AffinePoint<C>>>,
 ) -> Vec<ProjectivePoint<C>> {
-    summations
-        .into_iter()
-        .map(affine_summation_pairwise)
-        .collect()
+    summations.into_iter().map(affine_summation_pairwise).collect()
 }
 
 /// Adds each pair of points using an affine + affine = projective formula, then adds up the
@@ -62,9 +57,7 @@ pub fn affine_summation_pairwise<C: Curve>(points: Vec<AffinePoint<C>>) -> Proje
         }
     }
     // TODO: Avoid copying (deref)
-    reduced_points
-        .iter()
-        .fold(ProjectivePoint::ZERO, |sum, x| sum + *x)
+    reduced_points.iter().fold(ProjectivePoint::ZERO, |sum, x| sum + *x)
 }
 
 /// Computes several summations of affine points by applying an affine group law, except that the
@@ -94,16 +87,8 @@ pub fn affine_multisummation_batch_inversion<C: Curve>(
         for i in (0..range_end).step_by(2) {
             let p1 = summation[i];
             let p2 = summation[i + 1];
-            let AffinePoint {
-                x: x1,
-                y: y1,
-                zero: zero1,
-            } = p1;
-            let AffinePoint {
-                x: x2,
-                y: _y2,
-                zero: zero2,
-            } = p2;
+            let AffinePoint { x: x1, y: y1, zero: zero1 } = p1;
+            let AffinePoint { x: x2, y: _y2, zero: zero2 } = p2;
 
             if zero1 || zero2 || p1 == -p2 {
                 // These are trivial cases where we won't need any inverse.
@@ -130,16 +115,8 @@ pub fn affine_multisummation_batch_inversion<C: Curve>(
         for i in (0..range_end).step_by(2) {
             let p1 = summation[i];
             let p2 = summation[i + 1];
-            let AffinePoint {
-                x: x1,
-                y: y1,
-                zero: zero1,
-            } = p1;
-            let AffinePoint {
-                x: x2,
-                y: y2,
-                zero: zero2,
-            } = p2;
+            let AffinePoint { x: x1, y: y1, zero: zero1 } = p1;
+            let AffinePoint { x: x2, y: y2, zero: zero2 } = p2;
 
             let sum = if zero1 {
                 p2
@@ -200,39 +177,24 @@ mod tests {
         let g3_affine = (g_affine + g_affine + g_affine).to_affine();
         let g2_proj = g2_affine.to_projective();
         let g3_proj = g3_affine.to_projective();
-        assert_eq!(
-            affine_summation_pairwise::<Secp256K1>(vec![g_affine, g_affine]),
-            g2_proj
-        );
-        assert_eq!(
-            affine_summation_pairwise::<Secp256K1>(vec![g_affine, g2_affine]),
-            g3_proj
-        );
+        assert_eq!(affine_summation_pairwise::<Secp256K1>(vec![g_affine, g_affine]), g2_proj);
+        assert_eq!(affine_summation_pairwise::<Secp256K1>(vec![g_affine, g2_affine]), g3_proj);
         assert_eq!(
             affine_summation_pairwise::<Secp256K1>(vec![g_affine, g_affine, g_affine]),
             g3_proj
         );
-        assert_eq!(
-            affine_summation_pairwise::<Secp256K1>(vec![]),
-            ProjectivePoint::ZERO
-        );
+        assert_eq!(affine_summation_pairwise::<Secp256K1>(vec![]), ProjectivePoint::ZERO);
     }
 
     #[test]
     fn test_pairwise_affine_summation_batch_inversion() {
         let g = Secp256K1::GENERATOR_AFFINE;
         let g_proj = g.to_projective();
-        assert_eq!(
-            affine_summation_batch_inversion::<Secp256K1>(vec![g, g]),
-            g_proj + g_proj
-        );
+        assert_eq!(affine_summation_batch_inversion::<Secp256K1>(vec![g, g]), g_proj + g_proj);
         assert_eq!(
             affine_summation_batch_inversion::<Secp256K1>(vec![g, g, g]),
             g_proj + g_proj + g_proj
         );
-        assert_eq!(
-            affine_summation_batch_inversion::<Secp256K1>(vec![]),
-            ProjectivePoint::ZERO
-        );
+        assert_eq!(affine_summation_batch_inversion::<Secp256K1>(vec![]), ProjectivePoint::ZERO);
     }
 }
