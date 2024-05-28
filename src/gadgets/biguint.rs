@@ -105,16 +105,16 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderBiguint<F, D>
     }
 
     fn is_zero_biguint(&mut self, value: &BigUintTarget) -> BoolTarget {
-        let zero = self.zero_biguint();
-        let zero_targets: Vec<Target> = zero.limbs.iter().map(|&l| l.0).collect();
         let targets: Vec<Target> = value.limbs.iter().map(|&l| l.0).collect();
-        let res = self._true();
-        targets.iter().zip(zero_targets).for_each(|(a, b)| {
-            // All is_eq should be true
-            let is_eq = self.is_equal(*a, b);
-            self.and(res, is_eq);
-        });
-        res
+        let zero = self.zero();
+        // Check if all limbs are equal to zero
+        targets.iter().fold(
+            self._true(),
+            |is_all_eq: BoolTarget, x| {
+                let is_eq = self.is_equal(*x, zero);
+                self.and(is_all_eq, is_eq)
+            },
+        )
     }
 
     fn connect_biguint(&mut self, lhs: &BigUintTarget, rhs: &BigUintTarget) {
@@ -521,6 +521,37 @@ mod tests {
 
         builder.connect_biguint(&div, &expected_div);
         builder.connect_biguint(&rem, &expected_rem);
+
+        let data = builder.build::<C>();
+        let proof = data.prove(pw).unwrap();
+        data.verify(proof)
+    }
+
+    #[test]
+    fn test_is_zero_biguint() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let config = CircuitConfig::standard_recursion_config();
+        let pw = PartialWitness::new();
+        let mut builder = CircuitBuilder::<F, D>::new(config);
+
+        let zero = builder.zero_biguint();
+        let should_true = builder.is_zero_biguint(&zero);
+        builder.assert_one(should_true.target);
+
+        let one = builder.constant_biguint(&BigUint::from_u32(1).unwrap());
+        {
+            let should_false = builder.is_zero_biguint(&one);
+            builder.assert_zero(should_false.target);
+        }
+
+        let big = builder.constant_biguint(&BigUint::from_u128(1 << 100).unwrap());
+        {
+            let should_false = builder.is_zero_biguint(&big);
+            builder.assert_zero(should_false.target);
+        }
 
         let data = builder.build::<C>();
         let proof = data.prove(pw).unwrap();
